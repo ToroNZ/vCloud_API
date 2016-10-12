@@ -1,6 +1,9 @@
 import requests, base64
 import getpass
-import xml.etree.ElementTree as ET
+try:
+	import xml.etree.cElementTree as ET
+except ImportError:
+	import xml.etree.ElementTree as ET
 from picker import *
 import curses
 import curses.wrapper
@@ -209,20 +212,29 @@ orgheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization
 orgResponse = requests.get(orgurl, headers=orgheaders)
 print(orgResponse.content)
 
-orgs = ET.fromstring(orgResponse.content)
+# Parse XML and all the crappy namespaces
+tree = ET.fromstring(orgResponse.content)
+root = tree.getroot()
+iter = root.getiterator()
+
+for element in iter:
+	outputorgs = []
+	for name, value in element.items():
+		if 'application' not in value:
+			if True:
+				custname = value
+				#print custname
+				outputorgs.append(custname)
+
+	#print output[0]
+	print outputorgs
+
 
 # Pick an Org to work with
 
 opts = Picker(
-    title = 'Select files to delete',
-    options = [
-        ".autofsck", ".autorelabel", "bin/", "boot/", 
-        "cgroup/", "dev/", "etc/", "home/", "installimage.conf",
-        "installimage.debug", "lib/", "lib64/", "lost+found/",
-        "media/", "mnt/", "opt/", "proc/", "root/",
-        "sbin/", "selinux/", "srv/", "sys/",
-        "tmp/", "usr/", "var/"
-    ]
+    title = 'Select an Organization to work with',
+    options = outputorgs
 ).getSelected()
 
 if opts == False:
