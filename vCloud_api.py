@@ -113,36 +113,46 @@ selvc_url = ((vc_array[1].strip()).strip("'"))
 #print(selvc_name)
 #print(selvc_url)
 
+# Ask if VMs to be imported are powered on or not
+vmpwr_question = [
+  inquirer.List('Power state',
+                message="Is the VM(s) you want to import powered on?",
+                choices=['Yes', 'No'],
+            ),
+]
+vmpwr_answer = inquirer.prompt(vmpwr_question)
+
 # Get a list of VMs that can be seen by vCloud on the vCenter Server
 
-vmurl = ('%s/vmsList' % selvc_url)
-vmheaders = {'Accept': 'application/*+xml;version=20.0', 'x-vcloud-authorization': '%s' % auth_token}
-vmResponse = requests.get(vmurl, headers=vmheaders)
-#print(vmResponse.content)
+if vmpwr_answer == 'No':
+	vmurl = ('%s/vmsList' % selvc_url)
+	vmheaders = {'Accept': 'application/*+xml;version=20.0', 'x-vcloud-authorization': '%s' % auth_token}
+	vmResponse = requests.get(vmurl, headers=vmheaders)
+	#print(vmResponse.content)
 
-## Parse XML and all the crappy namespaces
-vmtree = ET.fromstring(vmResponse.content)
-### Create an empty array
-vm_name_array = []
+	## Parse XML and all the crappy namespaces
+	vmtree = ET.fromstring(vmResponse.content)
+	### Create an empty array
+	vm_name_array = []
 
-vmroot = vmtree
+	vmroot = vmtree
 
-namespaces = {'vmext': 'http://www.vmware.com/vcloud/extension/v1.5'} # add more as needed
-VMS = vmroot.findall('vmext:VmObjectRef', namespaces)
-VMref = vmroot.findall('vmext:MoRef', namespaces)
-for vm in VMS:
-	MoRef = vm.find('{http://www.vmware.com/vcloud/extension/v1.5}MoRef')
-	vm_name =  (vm.attrib['name'])
-	vm_ref = MoRef.text
-	vm_name_array.append(([vm_name, vm_ref]))
-	#print(vm_name_array)
+	namespaces = {'vmext': 'http://www.vmware.com/vcloud/extension/v1.5'} # add more as needed
+	VMS = vmroot.findall('vmext:VmObjectRef', namespaces)
+	VMref = vmroot.findall('vmext:MoRef', namespaces)
+	for vm in VMS:
+		MoRef = vm.find('{http://www.vmware.com/vcloud/extension/v1.5}MoRef')
+		vm_name =  (vm.attrib['name'])
+		vm_ref = MoRef.text
+		vm_name_array.append(([vm_name, vm_ref]))
+		#print(vm_name_array)
 
-#### Pick the VMs to migrate
+	#### Pick the VMs to migrate
 
-questions = [
-  inquirer.Checkbox('VMs List',
-                    message="Which VMs would you like to migrate into vCloud?",
-                    choices= vm_name_array,
-                    ),
-]
-vm_answer = inquirer.prompt(questions)
+	vm_questions = [
+	  inquirer.Checkbox('VMs List',
+						message="Which VMs would you like to migrate into vCloud?",
+						choices= vm_name_array,
+						),
+	]
+	vm_answer = inquirer.prompt(vm_questions)
