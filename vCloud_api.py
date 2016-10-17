@@ -1,179 +1,7 @@
-import requests, base64
+import requests, base64, re
 import getpass
-try:
-	import xml.etree.cElementTree as ET
-except ImportError:
-	import xml.etree.ElementTree as ET
-from picker import *
-import curses
-import curses.wrapper
-
-# Picker Class
-
-class Picker:
-    """Allows you to select from a list with curses"""
-    stdscr = None
-    win = None
-    title = ""
-    arrow = ""
-    footer = ""
-    more = ""
-    c_selected = ""
-    c_empty = ""
-    
-    cursor = 0
-    offset = 0
-    selected = 0
-    selcount = 0
-    aborted = False
-    
-    window_height = 15
-    window_width = 60
-    all_options = []
-    length = 0
-    
-    def curses_start(self):
-        self.stdscr = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        self.win = curses.newwin(
-            5 + self.window_height,
-            self.window_width,
-            2,
-            4
-        )
-    
-    def curses_stop(self):
-        curses.nocbreak()
-        self.stdscr.keypad(0)
-        curses.echo()
-        curses.endwin()
-
-    def getSelected(self):
-        if self.aborted == True:
-            return( False )
-
-        ret_s = filter(lambda x: x["selected"], self.all_options)
-        ret = map(lambda x: x["label"], ret_s)
-        return( ret )
-        
-    def redraw(self):
-        self.win.clear()
-        self.win.border(
-            self.border[0], self.border[1],
-            self.border[2], self.border[3],
-            self.border[4], self.border[5],
-            self.border[6], self.border[7]
-        )
-        self.win.addstr(
-            self.window_height + 4, 5, " " + self.footer + " "
-        )
-        
-        position = 0
-        range = self.all_options[self.offset:self.offset+self.window_height+1]
-        for option in range:
-            if option["selected"] == True:
-                line_label = self.c_selected + " "
-            else:
-                line_label = self.c_empty + " "
-            
-            self.win.addstr(position + 2, 5, line_label + option["label"])
-            position = position + 1
-            
-        # hint for more content above
-        if self.offset > 0:
-            self.win.addstr(1, 5, self.more)
-        
-        # hint for more content below
-        if self.offset + self.window_height <= self.length - 2:
-            self.win.addstr(self.window_height + 3, 5, self.more)
-        
-        self.win.addstr(0, 5, " " + self.title + " ")
-        self.win.addstr(
-            0, self.window_width - 8,
-            " " + str(self.selcount) + "/" + str(self.length) + " "
-        )
-        self.win.addstr(self.cursor + 2,1, self.arrow)
-        self.win.refresh()
-
-    def check_cursor_up(self):
-        if self.cursor < 0:
-            self.cursor = 0
-            if self.offset > 0:
-                self.offset = self.offset - 1
-    
-    def check_cursor_down(self):
-        if self.cursor >= self.length:
-            self.cursor = self.cursor - 1
-    
-        if self.cursor > self.window_height:
-            self.cursor = self.window_height
-            self.offset = self.offset + 1
-            
-            if self.offset + self.cursor >= self.length:
-                self.offset = self.offset - 1
-    
-    def curses_loop(self, stdscr):
-        while 1:
-            self.redraw()
-            c = stdscr.getch()
-            
-            if c == ord('q') or c == ord('Q'):
-                self.aborted = True
-                break
-            elif c == curses.KEY_UP:
-                self.cursor = self.cursor - 1
-            elif c == curses.KEY_DOWN:
-                self.cursor = self.cursor + 1
-            #elif c == curses.KEY_PPAGE:
-            #elif c == curses.KEY_NPAGE:
-            elif c == ord(' '):
-                self.all_options[self.selected]["selected"] = \
-                    not self.all_options[self.selected]["selected"]
-            elif c == 10:
-                break
-                    
-            # deal with interaction limits
-            self.check_cursor_up()
-            self.check_cursor_down()
-
-            # compute selected position only after dealing with limits
-            self.selected = self.cursor + self.offset
-            
-            temp = self.getSelected()
-            self.selcount = len(temp)
-    
-    def __init__(
-        self, 
-        options, 
-        title='Select', 
-        arrow="-->",
-        footer="Space = toggle, Enter = accept, q = cancel",
-        more="...",
-        border="||--++++",
-        c_selected="[X]",
-        c_empty="[ ]"
-    ):
-        self.title = title
-        self.arrow = arrow
-        self.footer = footer
-        self.more = more
-        self.border = border
-        self.c_selected = c_selected
-        self.c_empty = c_empty
-        
-        self.all_options = []
-        
-        for option in options:
-            self.all_options.append({
-                "label": option,
-                "selected": False
-            })
-            self.length = len(self.all_options)
-        
-        self.curses_start()
-        curses.wrapper( self.curses_loop )
-        self.curses_stop()
+import xml.etree.cElementTree as ET
+import inquirer
 
 # Variables
 
@@ -202,55 +30,119 @@ else:
 auth_token = myResponse.headers["x-vcloud-authorization"]
 print ("Your Auth Token is: %s" % (auth_token))
 tree = ET.fromstring(myResponse.content)
-print(myResponse.content)
-
+#print(myResponse.content)
 
 # Get a list of Organizations registered on this vCloud Server instance
 
 orgurl = ('https://chc.cloud.concepts.co.nz/api/org')
 orgheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
 orgResponse = requests.get(orgurl, headers=orgheaders)
-print(orgResponse.content)
+#print(orgResponse.content)
 
-# Parse XML and all the crappy namespaces
+## Parse XML and all the crappy namespaces
 tree = ET.fromstring(orgResponse.content)
-root = tree.getroot()
-iter = root.getiterator()
+### Create an empty array
+org_name_array = []
+ 
+for child in tree:
+	org_name = (child.attrib['name'])
+	org_url = (child.attrib['href'])
+	org_name_array.append(([org_name, org_url]))
+	#print(org_name_array[0:1])
+	#print(org_name_array[1:2])
 
-for element in iter:
-	outputorgs = []
-	for name, value in element.items():
-		if 'application' not in value:
-			if True:
-				custname = value
-				#print custname
-				outputorgs.append(custname)
+#### Pick an Org to work with
 
-	#print output[0]
-	print outputorgs
+questions = [
+  inquirer.List('Orgs',
+                message="What Org do you want to work with?",
+                choices= org_name_array,
+            ),
+]
+org_answer = inquirer.prompt(questions)
+#print(org_answer)
 
-
-# Pick an Org to work with
-
-opts = Picker(
-    title = 'Select an Organization to work with',
-    options = outputorgs
-).getSelected()
-
-if opts == False:
-    print "Nothing was selected!"
-else:
-    print opts
+#####Bit of massaging
+regex = """\[(.*?)]"""
+orglist = """%s""" % org_answer
+orgmatch = re.compile(regex).search(orglist).group(1)
+org_array = orgmatch.split(',')
+selorg_name = (org_array[0].strip("'"))
+selorg_url = ((org_array[1].strip()).strip("'"))
+#print(selorg_name)
+#print(selorg_url)
 
 # Get a list of vCenter Servers
 
 vcurl = ('https://chc.cloud.concepts.co.nz/api/admin/extension/vimServerReferences')
 vcheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
 vcResponse = requests.get(vcurl, headers=vcheaders)
-print(vcResponse.content)
+#print(vcResponse.content)
+
+## Parse XML and all the crappy namespaces
+vctree = ET.fromstring(vcResponse.content)
+### Create an empty array
+vc_name_array = []
+
+for i, child in enumerate(vctree):
+	if 'href' in child.attrib and 'name' in child.attrib:
+		vc_url =  (child.attrib['href'])
+		vc_name = (child.attrib['name'])
+		vc_name_array.append(([vc_name, vc_url]))
+		#print(vc_name_array[0:1])
+		#print(vc_name_array[1:2])
+
+#### Pick a vCenter to work with
+
+questions = [
+  inquirer.List('vCenter',
+                message="What vCenter do you want to work with?",
+                choices= vc_name_array,
+            ),
+]
+vc_answer = inquirer.prompt(questions)
+#print(vc_answer)
+
+#####Bit of massaging
+regex = """\[(.*?)]"""
+vclist = """%s""" % vc_answer
+vcmatch = re.compile(regex).search(vclist).group(1)
+vc_array = vcmatch.split(',')
+selvc_name = (vc_array[0].strip("'"))
+selvc_url = ((vc_array[1].strip()).strip("'"))
+#print(selvc_name)
+#print(selvc_url)
 
 # Get a list of VMs that can be seen by vCloud on the vCenter Server
 
-#vmsurl = ("https://chc.cloud.concepts.co.nz/api/admin/extension/%s/%s/vmsList" % (vcenter, auth_token))
-#vmsResponse = requests.get(vmsurl)
-#print(vmsResponse.headers)
+vmurl = ('%s/vmsList' % selvc_url)
+vmheaders = {'Accept': 'application/*+xml;version=20.0', 'x-vcloud-authorization': '%s' % auth_token}
+vmResponse = requests.get(vmurl, headers=vmheaders)
+#print(vmResponse.content)
+
+## Parse XML and all the crappy namespaces
+vmtree = ET.fromstring(vmResponse.content)
+### Create an empty array
+vm_name_array = []
+
+vmroot = vmtree
+
+namespaces = {'vmext': 'http://www.vmware.com/vcloud/extension/v1.5'} # add more as needed
+VMS = vmroot.findall('vmext:VmObjectRef', namespaces)
+VMref = vmroot.findall('vmext:MoRef', namespaces)
+for vm in VMS:
+	MoRef = vm.find('{http://www.vmware.com/vcloud/extension/v1.5}MoRef')
+	vm_name =  (vm.attrib['name'])
+	vm_ref = MoRef.text
+	vm_name_array.append(([vm_name, vm_ref]))
+	#print(vm_name_array)
+
+#### Pick the VMs to migrate
+
+questions = [
+  inquirer.Checkbox('VMs List',
+                    message="Which VMs would you like to migrate into vCloud?",
+                    choices= vm_name_array,
+                    ),
+]
+vm_answer = inquirer.prompt(questions)
