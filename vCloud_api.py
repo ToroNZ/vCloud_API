@@ -124,7 +124,7 @@ vmpwr_answer = inquirer.prompt(vmpwr_question)
 
 # Get a list of VMs that can be seen by vCloud on the vCenter Server
 
-if vmpwr_answer == 'No':
+if vmpwr_answer == {'Power state': 'No'}:
 	vmurl = ('%s/vmsList' % selvc_url)
 	vmheaders = {'Accept': 'application/*+xml;version=20.0', 'x-vcloud-authorization': '%s' % auth_token}
 	vmResponse = requests.get(vmurl, headers=vmheaders)
@@ -156,3 +156,7 @@ if vmpwr_answer == 'No':
 						),
 	]
 	vm_answer = inquirer.prompt(vm_questions)
+	print('Do something with these machines here %s' % vm_answer)
+
+if vmpwr_answer == {'Power state': 'Yes'}:
+	
