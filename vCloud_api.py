@@ -159,4 +159,4 @@ if vmpwr_answer == {'Power state': 'No'}:
 	print('Do something with these machines here %s' % vm_answer)
 
 if vmpwr_answer == {'Power state': 'Yes'}:
-	
+	print('''Do something else cause vCloud API won't give you the list of running VMs''')
