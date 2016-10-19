@@ -219,6 +219,7 @@ if vmpwr_answer == {'Power state': 'No'}:
 		
 	###### Get vCloud to import this machine
 	
+	tasks_array = []
 	impurl = ('%s/importVmAsVApp' % selvc_url)
 	impheaders = {'Accept': 'application/*+xml;version=20.0','Content-type': 'application/vnd.vmware.admin.importVmAsVAppParams+xml', 'x-vcloud-authorization': '%s' % auth_token}
 	
@@ -231,11 +232,19 @@ if vmpwr_answer == {'Power state': 'No'}:
    	<Vdc href="%s" />
 </ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
-		#print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
-		print(impResponse.content)
+		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
+		#print(impResponse.content)
+		tsktree = ET.fromstring(impResponse.content)
+		taskies = tsktree.getchildren()
+		for task in taskies:
+			tsk_children = task.getchildren()
+			for tsk_child in tsk_children:
+				if 'Task' in tsk_child.tag:
+					taskurl = (tsk_child.attrib['href'])
+					tasks_array.append(taskurl)
+	print(tasks_array)
 
-	
-	
+
 
 if vmpwr_answer == {'Power state': 'Yes'}:
 	print('''Do something else cause vCloud API won't give you the list of running VMs''')
