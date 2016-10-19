@@ -62,7 +62,7 @@ questions = [
 org_answer = inquirer.prompt(questions)
 #print(org_answer)
 
-#####Bit of massaging
+##### Bit of massaging
 regex = """\[(.*?)]"""
 orglist = """%s""" % org_answer
 orgmatch = re.compile(regex).search(orglist).group(1)
@@ -71,6 +71,47 @@ selorg_name = (org_array[0].strip("'"))
 selorg_url = ((org_array[1].strip()).strip("'"))
 #print(selorg_name)
 #print(selorg_url)
+
+# Get a list of vDC in this Org
+
+vdcurl = ('%s' % selorg_url)
+vdcheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
+vdcResponse = requests.get(vdcurl, headers=vdcheaders)
+#print(vdcResponse.content)
+
+## Parse XML and all the crappy namespaces
+vdctree = ET.fromstring(vdcResponse.content)
+vdcarray = []
+
+for child in vdctree:
+	if 'href' in child.attrib and 'name' in child.attrib:
+		if '/vdc/' in (child.attrib['href']):
+			vdc_url = (child.attrib['href'])
+			vdc_name = (child.attrib['name'])
+			vdcarray.append(([vdc_name, vdc_url]))
+#print(vdcarray)
+
+#### Pick an vDC to work with within this Org
+
+questions = [
+  inquirer.List('Virtual Data Center',
+                message="What vDC do you want to work with?",
+                choices= vdcarray,
+            ),
+]
+vdc_answer = inquirer.prompt(questions)
+#print(vdc_answer)
+
+##### Bit of massaging
+
+regex = """\[(.*?)]"""
+vdclist = """%s""" % vdc_answer
+vdcmatch = re.compile(regex).search(vdclist).group(1)
+vdc_array = vdcmatch.split(',')
+selvdc_name = (vdc_array[0].strip("'"))
+selvdc_url = ((vdc_array[1].strip()).strip("'"))
+#print(selvdc_name)
+#print(selvdc_url)
 
 # Get a list of vCenter Servers
 
@@ -104,9 +145,9 @@ vc_answer = inquirer.prompt(questions)
 #print(vc_answer)
 
 #####Bit of massaging
-regex = """\[(.*?)]"""
-vclist = """%s""" % vc_answer
-vcmatch = re.compile(regex).search(vclist).group(1)
+vcregex = '''\[(.*?)]'''
+vclist = '''%s''' % vc_answer
+vcmatch = re.compile(vcregex).search(vclist).group(1)
 vc_array = vcmatch.split(',')
 selvc_name = (vc_array[0].strip("'"))
 selvc_url = ((vc_array[1].strip()).strip("'"))
@@ -116,7 +157,7 @@ selvc_url = ((vc_array[1].strip()).strip("'"))
 # Ask if VMs to be imported are powered on or not
 vmpwr_question = [
   inquirer.List('Power state',
-                message="Is the VM(s) you want to import powered on?",
+                message='Is the VM(s) you want to import powered on?',
                 choices=['Yes', 'No'],
             ),
 ]
@@ -151,12 +192,50 @@ if vmpwr_answer == {'Power state': 'No'}:
 
 	vm_questions = [
 	  inquirer.Checkbox('VMs List',
-						message="Which VMs would you like to migrate into vCloud?",
+						message='Which VMs would you like to migrate into vCloud?',
 						choices= vm_name_array,
 						),
 	]
 	vm_answer = inquirer.prompt(vm_questions)
-	print('Do something with these machines here %s' % vm_answer)
+	##### Bit of massaging
+	vmsel_array = []
+	vmregex = '''\['(.*?)]'''
+	vmlist = '''%s''' % vm_answer
+	vmmatch = re.compile(vmregex).findall(vmlist)
+	#print(vmmatch)
+	for vm in vmmatch:
+		array = vm.replace("'", "")
+		#print((array).split(',')[0]).split()
+		nameid = ((array).split(',')[0]).split()
+		refid = ((array).split(',')[1]).split()
+		vmsel_array.append(([refid, nameid]))
+	#print(vmsel_array)
+	vms2move = ( ", ".join( repr(e) for e in vmsel_array )).replace("'", "").replace('[', '').replace(']', '').split(',')
+	#print(vms2move)
+	arraygone = ( ", ".join( repr(e[0]) for e in vmsel_array )).replace("'", "").replace('[', '').replace(']', '').split(',')
+	#print(arraygone)
+	#for sel in arraygone:
+		#print((sel).strip())
+		
+	###### Get vCloud to import this machine
+	
+	impurl = ('%s/importVmAsVApp' % selvc_url)
+	impheaders = {'Accept': 'application/*+xml;version=20.0','Content-type': 'application/vnd.vmware.admin.importVmAsVAppParams+xml', 'x-vcloud-authorization': '%s' % auth_token}
+	
+	for idx, val in enumerate(vmsel_array):
+		vmname = str(val[1]).replace("'", "").replace('[', '').replace(']', '')
+		vmid = str(val[0]).replace("'", "").replace('[', '').replace(']', '')
+		xml = ('''<?xml version="1.0" encoding="UTF-8"?>
+<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="false">
+	<VmMoRef>%s</VmMoRef>
+   	<Vdc href="%s" />
+</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
+		impResponse = requests.post(impurl, data=xml, headers=impheaders)
+		#print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
+		print(impResponse.content)
+
+	
+	
 
 if vmpwr_answer == {'Power state': 'Yes'}:
 	print('''Do something else cause vCloud API won't give you the list of running VMs''')
