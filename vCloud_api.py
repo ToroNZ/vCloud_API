@@ -259,9 +259,8 @@ if vmpwr_answer == {'Power state': 'No'}:
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code != requests.codes.ok:
-			erregex = '''\majorErrorCode(.?)*/Error'''
 			errlist = '''%s''' % impResponse.content
-			error = re.compile(erregex).findall(errlist)
+			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
 			print(error)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
@@ -369,9 +368,8 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code != requests.codes.ok:
-			erregex = '''\majorErrorCode(.?)*/Error'''
 			errlist = '''%s''' % impResponse.content
-			error = re.compile(erregex).findall(errlist)
+			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
 			print(error)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
