@@ -26,7 +26,7 @@ questions = [
             ),
 ]
 vcl_answer = inquirer.prompt(questions)
-print(vcl_answer)
+#print(vcl_answer)
 
 ### Bit of massaging
 regex = """\{'(.*?)}"""
