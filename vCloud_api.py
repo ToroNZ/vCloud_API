@@ -259,8 +259,10 @@ if vmpwr_answer == {'Power state': 'No'}:
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code != requests.codes.ok:
-			print(impResponse.content)
-			Disconnect(context)
+			erregex = '''\majorErrorCode(.?)*/Error'''
+			errlist = '''%s''' % impResponse.content
+			error = re.compile(erregex).findall(errlist)
+			print(error)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
@@ -328,7 +330,8 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	]
 	vm_answer = inquirer.prompt(questions)
 	#print(vm_answer)
-
+	Disconnect(context)
+	
 	##### Bit of massaging
 	vmsel_array = []
 	vmregex = '''\['(.*?)]'''
@@ -366,8 +369,10 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code != requests.codes.ok:
-			print(impResponse.content)
-			Disconnect(context)
+			erregex = '''\majorErrorCode(.?)*/Error'''
+			errlist = '''%s''' % impResponse.content
+			error = re.compile(erregex).findall(errlist)
+			print(error)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
@@ -377,5 +382,4 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 				if 'Task' in tsk_child.tag:
 					taskurl = (tsk_child.attrib['href'])
 					tasks_array.append(taskurl)
-	Disconnect(context)
 	print(tasks_array)
