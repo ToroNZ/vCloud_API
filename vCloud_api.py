@@ -337,8 +337,8 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	impheaders = {'Accept': 'application/*+xml;version=20.0','Content-type': 'application/vnd.vmware.admin.importVmAsVAppParams+xml', 'x-vcloud-authorization': '%s' % auth_token}
 
 	for idx, val in enumerate(vmsel_array):
-		vmname = str(val[1]).replace("'", "").replace('[', '').replace(']', '')
-		vmid = str(val[0]).replace("'", "").replace('[', '').replace(']', '')
+		vmname = str(val[0]).replace("'", "").replace('[', '').replace(']', '')
+		vmid = str(val[1]).replace('vim.VirtualMachine:', '').replace("'", "").replace('[', '').replace(']', '')
 		xml = ('''<?xml version="1.0" encoding="UTF-8"?>
 	<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="false">
 	<VmMoRef>%s</VmMoRef>
