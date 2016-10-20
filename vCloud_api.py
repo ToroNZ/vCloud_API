@@ -19,7 +19,8 @@ headers = {'Accept': 'application/*+xml;version=20.0', "Authorization": "Basic %
 # Make request and pass creds
 myResponse = requests.post(url, headers=headers)
 if(myResponse.ok):
-    print ("Autheticated successfully to Org %s as %s" % (org, user))
+	print('')
+	print ("Autheticated successfully to Org %s as %s" % (org, user))
 else:
   # If response code is not ok (200), print the resulting http error code with description
     myResponse.raise_for_status()
@@ -28,7 +29,9 @@ else:
 # Grab stuff from response
 
 auth_token = myResponse.headers["x-vcloud-authorization"]
+print('')
 print ("Your Auth Token is: %s" % (auth_token))
+print('')
 tree = ET.fromstring(myResponse.content)
 #print(myResponse.content)
 
@@ -91,7 +94,7 @@ for child in vdctree:
 			vdcarray.append(([vdc_name, vdc_url]))
 #print(vdcarray)
 
-#### Pick an vDC to work with within this Org
+#### Pick a vDC to work with within this Org
 
 questions = [
   inquirer.List('Virtual Data Center',
@@ -247,4 +250,104 @@ if vmpwr_answer == {'Power state': 'No'}:
 
 
 if vmpwr_answer == {'Power state': 'Yes'}:
-	print('''Do something else cause vCloud API won't give you the list of running VMs''')
+	# Connect to vCenter
+
+	context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+	context.verify_mode = ssl.CERT_NONE
+	connect = SmartConnect(host=selvc_name,user=user,pwd=passw,port=int("443"),sslContext=context)
+	content = connect.RetrieveContent()
+	datacenter = connect.content.rootFolder.childEntity[0]
+	#print (datacenter)
+	folders = datacenter.vmFolder.childEntity
+
+	folder_array = []
+	for folder in folders:
+		#print(folder.name)
+		folder_name = (folder.name)
+		folder_id = (folder)
+		folder_array.append(([folder_name, folder_id]))
+
+	## Pick a Folder to work with
+
+	questions = [
+		inquirer.List('VM Folder',
+					message="What Folder should we look into?",
+					choices= folder_array,
+				),
+	]
+	fol_answer = inquirer.prompt(questions)
+	#print(fol_answer)
+	selfoldernm = str(fol_answer).split(",")[0].replace("{'VM Folder': ", "").replace("[", "").strip().strip("'")
+	selfolderid = str(fol_answer).split(",")[1].replace("]}", "").strip().strip("'")
+
+	# Get VMs inside the selected Folder
+
+	vm_array = []
+	for thefolder in folders:
+		if thefolder.name == selfoldernm:
+			#print(thefolder.childEntity)
+			for vm in thefolder.childEntity:
+				vmid = (vm)
+				vmname = (vm.name)
+				vm_array.append(([vmid, vmname]))
+
+	#print(vm_array)
+
+	## Pick the machines to import
+
+	questions = [
+		inquirer.Checkbox('VMs List',
+					message="Which VMs would you like to migrate into vCloud?",
+					choices= vm_array,
+				),
+	]
+	vm_answer = inquirer.prompt(questions)
+	#print(vm_answer)
+
+	##### Bit of massaging
+	vmsel_array = []
+	vmregex = '''\['(.*?)]'''
+	vmlist = '''%s''' % vm_answer
+	vmmatch = re.compile(vmregex).findall(vmlist)
+	#print(vmmatch)
+	for vm in vmmatch:
+		array = vm.replace("'", "")
+		#print((array).split(',')[0]).split()
+		nameid = ((array).split(',')[0]).split()
+		refid = ((array).split(',')[1]).split()
+		vmsel_array.append(([refid, nameid]))
+	#print(vmsel_array)
+	vms2move = ( ", ".join( repr(e) for e in vmsel_array )).replace("'", "").replace('[', '').replace(']', '').split(',')
+	#print(vms2move)
+	arraygone = ( ", ".join( repr(e[0]) for e in vmsel_array )).replace("'", "").replace('[', '').replace(']', '').split(',')
+	#print(arraygone)
+	#for sel in arraygone:
+		#print((sel).strip())
+
+	###### Get vCloud to import this machine
+
+	tasks_array = []
+	impurl = ('%s/importVmAsVApp' % selvc_url)
+	impheaders = {'Accept': 'application/*+xml;version=20.0','Content-type': 'application/vnd.vmware.admin.importVmAsVAppParams+xml', 'x-vcloud-authorization': '%s' % auth_token}
+
+	for idx, val in enumerate(vmsel_array):
+		vmname = str(val[1]).replace("'", "").replace('[', '').replace(']', '')
+		vmid = str(val[0]).replace("'", "").replace('[', '').replace(']', '')
+		xml = ('''<?xml version="1.0" encoding="UTF-8"?>
+	<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="false">
+	<VmMoRef>%s</VmMoRef>
+	<Vdc href="%s" />
+	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
+		impResponse = requests.post(impurl, data=xml, headers=impheaders)
+		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
+		#print(impResponse.content)
+		tsktree = ET.fromstring(impResponse.content)
+		taskies = tsktree.getchildren()
+		for task in taskies:
+			tsk_children = task.getchildren()
+			for tsk_child in tsk_children:
+				if 'Task' in tsk_child.tag:
+					taskurl = (tsk_child.attrib['href'])
+					tasks_array.append(taskurl)
+	Disconnect(context)
+	print(tasks_array)
