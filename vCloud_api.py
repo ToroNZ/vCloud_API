@@ -1,10 +1,10 @@
+from __future__ import print_function
+from pyVim.connect import SmartConnect, Disconnect
+from pyVmomi import vim
 import requests, base64, re
 import getpass
 import xml.etree.cElementTree as ET
 import inquirer
-from __future__ import print_function
-from pyVim.connect import SmartConnect, Disconnect
-from pyVmomi import vim
 import argparse
 import atexit
 import ssl
