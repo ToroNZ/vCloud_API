@@ -258,6 +258,9 @@ if vmpwr_answer == {'Power state': 'No'}:
 </ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
+		if impResponse.status_code != requests.codes.ok:
+			print(impResponse.content)
+			Disconnect(context)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
@@ -362,6 +365,9 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
+		if impResponse.status_code != requests.codes.ok:
+			print(impResponse.content)
+			Disconnect(context)
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
