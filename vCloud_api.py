@@ -17,12 +17,28 @@ passw = getpass.getpass()
 creds = ''.join(["%s@%s:%s" % (user, org, passw)])
 b64Val = base64.b64encode(creds)
 
+## Choose vCloud instance
 
-# Run URL
-url = "https://chc.cloud.concepts.co.nz/api/sessions"
+questions = [
+  inquirer.List('vCloud Instance',
+                message="What vCloud instance do you want to work with?",
+                choices=['https://chc.cloud.concepts.co.nz/api/sessions', 'https://akl.cloud.concepts.co.nz/api/sessions'],
+            ),
+]
+vcl_answer = inquirer.prompt(questions)
+print(vcl_answer)
+
+### Bit of massaging
+regex = """\{'(.*?)}"""
+vcllist = """%s""" % vcl_answer
+vclmatch = re.compile(regex).search(vcllist).group(1)
+vcloudurl = vclmatch.replace("vCloud Instance': '", "").replace("'", "")
+
+#### Run URL
+url = vcloudurl
 headers = {'Accept': 'application/*+xml;version=20.0', "Authorization": "Basic %s" % b64Val}
 
-# Make request and pass creds
+##### Make request and pass creds
 myResponse = requests.post(url, headers=headers)
 if(myResponse.ok):
 	print('')
@@ -32,7 +48,7 @@ else:
     myResponse.raise_for_status()
 
 
-# Grab stuff from response
+###### Grab stuff from response
 
 auth_token = myResponse.headers["x-vcloud-authorization"]
 print('')
