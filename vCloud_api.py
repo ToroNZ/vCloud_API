@@ -263,7 +263,7 @@ if vmpwr_answer == {'Power state': 'No'}:
 		vmname = str(val[1]).replace("'", "").replace('[', '').replace(']', '')
 		vmid = str(val[0]).replace("'", "").replace('[', '').replace(']', '')
 		xml = ('''<?xml version="1.0" encoding="UTF-8"?>
-<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="false">
+<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="true">
 	<VmMoRef>%s</VmMoRef>
    	<Vdc href="%s" />
 </ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
