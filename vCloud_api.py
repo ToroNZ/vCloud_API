@@ -268,11 +268,14 @@ if vmpwr_answer == {'Power state': 'No'}:
    	<Vdc href="%s" />
 </ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
-		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code > 204:
 			errlist = '''%s''' % impResponse.content
 			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
+			result = "Failed"
 			print(error)
+		else:
+			result = "Successful"
+		print('Importing machine %s with refid %s into vCloud...%s' % (vmname, vmid, result))
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
@@ -377,11 +380,14 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	<Vdc href="%s" />
 	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
-		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
 		if impResponse.status_code > 204:
 			errlist = '''%s''' % impResponse.content
 			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
+			result = "Failed"
 			print(error)
+		else:
+			result = "Successful"
+		print('Importing machine %s with refid %s into vCloud...%s' % (vmname, vmid, result))
 		#print(impResponse.content)
 		tsktree = ET.fromstring(impResponse.content)
 		taskies = tsktree.getchildren()
