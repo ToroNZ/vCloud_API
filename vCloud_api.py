@@ -269,7 +269,7 @@ if vmpwr_answer == {'Power state': 'No'}:
 </ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
-		if impResponse.status_code != requests.codes.ok:
+		if impResponse.status_code != 200 or 201 or 202 or 204:
 			errlist = '''%s''' % impResponse.content
 			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
 			print(error)
@@ -378,7 +378,7 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		print('Importing machine %s with refid %s into vCloud...' % (vmname, vmid))
-		if impResponse.status_code != requests.codes.ok:
+		if impResponse.status_code != 200 or 201 or 202 or 204:
 			errlist = '''%s''' % impResponse.content
 			error = re.search(r'\majorErrorCode(.?)*/Error', errlist).group(0)
 			print(error)
