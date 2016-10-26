@@ -147,7 +147,7 @@ selvdc_url = ((vdc_array[1].strip()).strip("'"))
 
 # Get a list of vCenter Servers
 
-vcurl = ('https://chc.cloud.concepts.co.nz/api/admin/extension/vimServerReferences')
+vcurl = ('%s/api/admin/extension/vimServerReferences' % (vcloudorgs))
 vcheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
 vcResponse = requests.get(vcurl, headers=vcheaders)
 #print(vcResponse.content)
