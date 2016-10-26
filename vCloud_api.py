@@ -1,13 +1,8 @@
 from __future__ import print_function
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
-import requests, base64, re
-import getpass
+import requests, base64, re, sys, getpass, inquirer, argparse, atexit, ssl
 import xml.etree.cElementTree as ET
-import inquirer
-import argparse
-import atexit
-import ssl
 
 print("""                                    __                            ______                ___      """)
 print(""" /'\_/`\  __                       /\ \__  __                    /\__  _\              /\_ \     """)
@@ -32,7 +27,7 @@ b64Val = base64.b64encode(creds)
 
 questions = [
   inquirer.List('vCloud Instance',
-                message="What vCloud instance do you want to work with?",
+                message="What vCloud instance do you want to work with? [Use ENTER to select entry]",
                 choices=['https://chc.cloud.concepts.co.nz/api/sessions', 'https://akl.cloud.concepts.co.nz/api/sessions'],
             ),
 ]
@@ -55,9 +50,9 @@ if(myResponse.ok):
 	print('')
 	print ("Autheticated successfully to Org %s as %s" % (org, user))
 else:
-  # If response code is not ok (200), print the resulting http error code with description
-    myResponse.raise_for_status()
-
+	# If response code is not ok (200), print the resulting http error code with description
+	print("Unauthorized")
+	sys.exit(1)
 
 ###### Grab stuff from response
 
@@ -91,7 +86,7 @@ for child in tree:
 
 questions = [
   inquirer.List('Orgs',
-                message="What Org do you want to work with?",
+                message="What Org do you want to work with? [Use ENTER to select entry]",
                 choices= org_name_array,
             ),
 ]
@@ -131,7 +126,7 @@ for child in vdctree:
 
 questions = [
   inquirer.List('Virtual Data Center',
-                message="What vDC do you want to work with?",
+                message="What vDC do you want to work with? [Use ENTER to select entry]",
                 choices= vdcarray,
             ),
 ]
@@ -173,7 +168,7 @@ for i, child in enumerate(vctree):
 
 questions = [
   inquirer.List('vCenter',
-                message="What vCenter do you want to work with?",
+                message="What vCenter do you want to work with? [Use ENTER to select entry]",
                 choices= vc_name_array,
             ),
 ]
@@ -193,7 +188,7 @@ selvc_url = ((vc_array[1].strip()).strip("'"))
 # Ask if VMs to be imported are powered on or not
 vmpwr_question = [
   inquirer.List('Power state',
-                message='Is the VM(s) you want to import powered on?',
+                message='Is the VM(s) you want to import powered on? [Use ENTER to select entry]',
                 choices=['Yes', 'No'],
             ),
 ]
@@ -228,7 +223,7 @@ if vmpwr_answer == {'Power state': 'No'}:
 
 	vm_questions = [
 	  inquirer.Checkbox('VMs List',
-						message='Which VMs would you like to migrate into vCloud?',
+						message='Which VMs would you like to migrate into vCloud? [Use SPACE to select and ENTER to submit]',
 						choices= vm_name_array,
 						),
 	]
@@ -311,7 +306,7 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 
 	questions = [
 		inquirer.List('VM Folder',
-					message="What Folder should we look into?",
+					message="What Folder should we look into? [Use ENTER to select entry]",
 					choices= folder_array,
 				),
 	]
@@ -337,7 +332,7 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 
 	questions = [
 		inquirer.Checkbox('VMs List',
-					message="Which VMs would you like to migrate into vCloud?",
+					message="Which VMs would you like to migrate into vCloud? [Use SPACE to select and ENTER to submit]",
 					choices= vm_array,
 				),
 	]
@@ -397,4 +392,4 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 				if 'Task' in tsk_child.tag:
 					taskurl = (tsk_child.attrib['href'])
 					tasks_array.append(taskurl)
-	print(tasks_array)
+	#print(tasks_array)
