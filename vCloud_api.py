@@ -65,7 +65,8 @@ tree = ET.fromstring(myResponse.content)
 
 # Get a list of Organizations registered on this vCloud Server instance
 
-orgurl = ('https://chc.cloud.concepts.co.nz/api/org')
+vcloudorgs = vcloudurl.replace('/api/sessions', '')
+orgurl = ('%s/api/org' % (vcloudorgs))
 orgheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
 orgResponse = requests.get(orgurl, headers=orgheaders)
 #print(orgResponse.content)
