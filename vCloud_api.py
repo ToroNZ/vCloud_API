@@ -152,7 +152,7 @@ selvdc_url = ((vdc_array[1].strip()).strip("'"))
 
 stgurl = ('%s' % selvdc_url)
 stgheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
-stgResponse = requests.get(stgcurl, headers=stgheaders)
+stgResponse = requests.get(stgurl, headers=stgheaders)
 #print(stgResponse.content)
 
 ## Parse XML and all the crappy namespaces
