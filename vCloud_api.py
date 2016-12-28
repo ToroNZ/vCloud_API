@@ -308,7 +308,8 @@ if vmpwr_answer == {'Power state': 'No'}:
 <ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="true">
 	<VmMoRef>%s</VmMoRef>
    	<Vdc href="%s" />
-</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
+	<VdcStorageProfile href="%s" />
+	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url, selstg_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		if impResponse.status_code > 204:
 			errlist = '''%s''' % impResponse.content
