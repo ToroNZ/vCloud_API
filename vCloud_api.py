@@ -159,14 +159,16 @@ stgResponse = requests.get(stgurl, headers=stgheaders)
 stgtree = ET.fromstring(stgResponse.content)
 stgarray = []
 
-for child in stgtree:
-	if 'href' in child.attrib and 'name' in child.attrib:
-		if '/vdcStorageProfile/' in (child.attrib['href']):
-			stg_url = (child.attrib['href'])
-			stg_name = (child.attrib['name'])
-			stgarray.append(([stg_name, stg_url]))
-#print(stgarray)
+stgroot = stgtree
 
+STGL = stgroot.findall('.//{http://www.vmware.com/vcloud/v1.5}VdcStorageProfile')
+
+for stg in STGL:
+	stg_name = (stg.attrib['name'])
+	stg_ref = (stg.attrib['href'])
+	stgarray.append(([stg_name, stg_ref]))
+	#print(stgarray)
+	
 #### Pick a Storage Profile to work with within this Org vDC
 
 questions = [
@@ -186,8 +188,8 @@ stgmatch = re.compile(regex).search(stglist).group(1)
 stg_array = stgmatch.split(',')
 selstg_name = (stg_array[0].strip("'"))
 selstg_url = ((stg_array[1].strip()).strip("'"))
-print(selstg_name)
-print(selstg_url)
+#print(selstg_name)
+#print(selstg_url)
 
 # Get a list of vCenter Servers
 
