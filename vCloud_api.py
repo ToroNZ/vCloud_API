@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from __future__ import print_function
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
@@ -144,6 +147,47 @@ selvdc_name = (vdc_array[0].strip("'"))
 selvdc_url = ((vdc_array[1].strip()).strip("'"))
 #print(selvdc_name)
 #print(selvdc_url)
+
+# Get a list of Storage Profiles in the selected vDC
+
+stgurl = ('%s' % selvdc_url)
+stgheaders = {'Accept': 'application/*+xml;version=5.6', 'x-vcloud-authorization': '%s' % auth_token}
+stgResponse = requests.get(stgcurl, headers=stgheaders)
+#print(stgResponse.content)
+
+## Parse XML and all the crappy namespaces
+stgtree = ET.fromstring(stgResponse.content)
+stgarray = []
+
+for child in stgtree:
+	if 'href' in child.attrib and 'name' in child.attrib:
+		if '/vdcStorageProfile/' in (child.attrib['href']):
+			stg_url = (child.attrib['href'])
+			stg_name = (child.attrib['name'])
+			stgarray.append(([stg_name, stg_url]))
+#print(stgarray)
+
+#### Pick a Storage Profile to work with within this Org vDC
+
+questions = [
+  inquirer.List('Storage Profiles Available',
+                message="What Storage Profile do you want to work with? [Use ENTER to select entry]",
+                choices= stgarray,
+            ),
+]
+stg_answer = inquirer.prompt(questions)
+#print(stg_answer)
+
+##### Bit of massaging
+
+regex = """\[(.*?)]"""
+stglist = """%s""" % stg_answer
+stgmatch = re.compile(regex).search(stglist).group(1)
+stg_array = stgmatch.split(',')
+selstg_name = (stg_array[0].strip("'"))
+selstg_url = ((stg_array[1].strip()).strip("'"))
+print(selstg_name)
+print(selstg_url)
 
 # Get a list of vCenter Servers
 
@@ -374,7 +418,8 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 	<ImportVmAsVAppParams xmlns="http://www.vmware.com/vcloud/extension/v1.5" name="%s" sourceMove="true">
 	<VmMoRef>%s</VmMoRef>
 	<Vdc href="%s" />
-	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url))
+	<VdcStorageProfile href="%s" />
+	</ImportVmAsVAppParams>''' % (vmname, vmid, selvdc_url, selstg_url))
 		impResponse = requests.post(impurl, data=xml, headers=impheaders)
 		if impResponse.status_code > 204:
 			errlist = '''%s''' % impResponse.content
@@ -393,4 +438,4 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 				if 'Task' in tsk_child.tag:
 					taskurl = (tsk_child.attrib['href'])
 					tasks_array.append(taskurl)
-	#print(tasks_array)
+#print(tasks_array)
