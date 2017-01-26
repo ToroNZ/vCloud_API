@@ -438,5 +438,6 @@ if vmpwr_answer == {'Power state': 'Yes'}:
 			for tsk_child in tsk_children:
 				if 'Task' in tsk_child.tag:
 					taskurl = (tsk_child.attrib['href'])
+					print(taskurl)
 					tasks_array.append(taskurl)
 #print(tasks_array)
